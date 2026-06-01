@@ -10,8 +10,8 @@ Purplle StoreIQ is a production-grade, multi-camera AI Store Intelligence System
 ## Quick Start (5 commands)
 
 ```bash
-git clone <your-repo-url>
-cd storeiq
+git clone https://github.com/KomalSaiVulchi/STORE-IQ.git
+cd STORE-IQ/storeiq
 cp .env.example .env
 docker compose up --build
 curl http://localhost:8000/stores/STORE_BLR_002/metrics
@@ -29,8 +29,8 @@ The API auto-loads POS transactions from `dataset/Brigade_Bangalore_10_April_26 
                     +---------+----------+               |
                               |                          v
                               |                +------------------+
-                              |                | FastAPI Backend  |
-                              |                | PostgreSQL/Redis |
+                              |                | FastAPI Backend   |
+                              |                | PostgreSQL/Redis  |
                               |                +---------+--------+
                               |                          |
                               v                          v
@@ -48,49 +48,53 @@ storeiq/
 ├── streaming/         # Kafka producer/consumer
 ├── analytics/         # Funnel, heatmap, prediction engines
 ├── anomaly/           # Anomaly detection
+├── feature_store/     # Visitor feature persistence
 ├── api/               # FastAPI backend
 ├── database/          # SQLAlchemy models, migrations, seed
 ├── dashboard/         # React live dashboard (Part E bonus)
 ├── docker/            # Dockerfiles
+├── dataset/           # POS CSV + store layout (CCTV videos excluded)
 ├── docs/
 │   ├── DESIGN.md      # Architecture + AI-Assisted Decisions
-│   └── CHOICES.md     # Model, schema, and API trade-offs
-└── tests/
+│   ├── CHOICES.md     # Model, schema, and API trade-offs
+│   └── SCORING.md     # Self-scoring rubric
+└── tests/             # 51 unit/integration tests
 ```
 
-## Dataset (bundled)
+## Dataset
 
-Challenge data lives in **`dataset/`** inside the repo:
+Challenge reference data is bundled in the repo:
 
 ```
 storeiq/dataset/
-├── CCTV Footage/       # CAM 1.mp4 … CAM 5.mp4
-├── Brigade_Bangalore_10_April_26 (1)bc6219c.csv
-├── Brigade Road - Store layoutc5f5d56.xlsx
-└── README.md
+├── Brigade_Bangalore_10_April_26 (1)bc6219c.csv   # POS transactions
+├── Brigade Road - Store layoutc5f5d56.xlsx         # Store layout
+└── README.md                                       # Data documentation
 ```
 
-Store layout is configured in `pipeline/store_layout.json` and zone polygons in `pipeline/zone_config.json`.
+> **Note:** CCTV video files (~650 MB) are excluded from the repo due to size. Place your CCTV clips in `dataset/CCTV Footage/` locally to run the detection pipeline. The API works without them using seed data.
 
-> **GitHub:** Videos are ~650 MB — use [Git LFS](https://git-lfs.github.com/) (`git lfs track "dataset/CCTV Footage/*.mp4"`) before push. See `dataset/README.md`.
+Store layout is configured in `pipeline/store_layout.json` and zone polygons in `pipeline/zone_config.json`.
 
 ## Running the Detection Pipeline
 
 Process all 5 CCTV clips — events are persisted to PostgreSQL **and** published to Kafka (API consumer also ingests):
 
 ```bash
-cd storeiq
+cd STORE-IQ/storeiq
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ./pipeline/run.sh
 ```
+
+> **Prerequisite:** Place the CCTV footage files (`CAM 1.mp4` through `CAM 5.mp4`) in `dataset/CCTV Footage/` before running.
 
 After processing, verify live data:
 
 ```bash
 curl http://localhost:8000/stores/STORE_BLR_002/metrics
 curl http://localhost:8000/stores/STORE_BLR_002/funnel
-curl http://localhost:8000/stores/STORE_BLR_002/anomalies?active_only=true
+curl "http://localhost:8000/stores/STORE_BLR_002/anomalies?active_only=true"
 ```
 
 The script maps each clip to its camera ID from `store_layout.json`:
@@ -156,12 +160,22 @@ curl http://localhost:8000/stores/STORE_BLR_002/heatmap
 curl "http://localhost:8000/stores/STORE_BLR_002/anomalies?active_only=true&severity=CRITICAL"
 ```
 
+### GET /stores/{store_id}/predict/queue
+```bash
+curl http://localhost:8000/stores/STORE_BLR_002/predict/queue
+```
+
 ### GET /health
 ```bash
 curl http://localhost:8000/health
 ```
 
-Legacy aliases (`/metrics`, `/funnel`, etc.) default to `STORE_BLR_002`.
+### GET /metrics/prometheus
+```bash
+curl http://localhost:8000/metrics/prometheus
+```
+
+Legacy aliases (`/metrics`, `/funnel`, `/anomalies`, `/predict/queue`) default to `STORE_BLR_002`.
 
 ## Sample Event Payload
 
@@ -194,6 +208,7 @@ docker compose exec api python -m database.seed
 ## Running Tests
 
 ```bash
+cd STORE-IQ/storeiq
 pip install -r requirements.txt
 pytest tests/ -v --cov=. --cov-report=term-missing
 ```
@@ -227,7 +242,7 @@ All 51 tests passing ✅:
 - **Event Generator**: Structured event emission (ENTRY, EXIT, ZONE_*, BILLING_*, REENTRY)
 
 **Backend API** (`api/`)
-- **FastAPI** async web framework with Uvicorn
+- **FastAPI** async web framework with Uvicorn/Gunicorn
 - **PostgreSQL** with SQLAlchemy ORM for event persistence
 - **Redis** for session state + feature store caching
 - **Kafka** for decoupled event streaming
@@ -238,7 +253,8 @@ All 51 tests passing ✅:
 - **SessionRecord**: Session-based deduplication (visitor journey)
 - **MetricsHourly**: Time-series metrics snapshot
 - **AnomalyRecord**: Detected anomalies with suggested actions
-- **PosTransaction**: Conversion attribution
+- **PosTransaction**: Conversion attribution via Brigade CSV
+- **VisitorFeature**: Feature store for visitor analytics
 
 **Analytics** (`analytics/`)
 - **Funnel Engine**: 4-stage funnel (Entry → Zone Visit → Billing → Purchase)
@@ -273,6 +289,7 @@ See [**DESIGN.md**](docs/DESIGN.md) for architecture rationale and [**CHOICES.md
 ✅ **Logging** — Structured JSON with trace_id, latency_ms per request  
 ✅ **Rate Limiting** — 120 requests/minute (configurable)  
 ✅ **Monitoring** — Health endpoint with STALE_FEED warning (>10 min lag)  
+✅ **Prometheus** — `/metrics/prometheus` endpoint for monitoring  
 ✅ **Scalability** — Designed for 40 stores + real-time event streaming  
 ✅ **Docker** — All services health-checked; zero manual setup  
 
@@ -326,9 +343,9 @@ echo $CORS_ORIGINS
 ```
 
 ### Large dataset/model files
-- Videos (~650 MB): Use Git LFS
+- Videos (~650 MB): Not included in repo — place in `dataset/CCTV Footage/` locally
 - Model weights (yolo11n.pt, osnet): Downloaded at runtime
-- Dataset CSV: Included in repo
+- Dataset CSV/XLSX: Included in repo ✅
 
 ---
 
@@ -366,4 +383,4 @@ Purplle proprietary system. Challenge submission: 2026.
 - [x] `docs/CHOICES.md` covers model selection, schema design, API decision
 - [x] Prompt blocks at top of each test file
 - [x] Live dashboard at http://localhost:3000
-- [x] Challenge dataset bundled under `dataset/`
+- [x] Challenge dataset (POS CSV + layout) bundled under `dataset/`
