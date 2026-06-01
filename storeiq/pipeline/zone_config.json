@@ -1,0 +1,43 @@
+{
+  "default_zones": [
+    {"zone_id": "ENTRANCE", "polygon": [[0, 0], [500, 0], [500, 400], [0, 400]]},
+    {"zone_id": "SKINCARE", "polygon": [[500, 0], [1100, 0], [1100, 400], [500, 400]]},
+    {"zone_id": "MAKEUP", "polygon": [[1100, 0], [1920, 0], [1920, 400], [1100, 400]]},
+    {"zone_id": "HAIRCARE", "polygon": [[0, 400], [700, 400], [700, 1080], [0, 1080]]},
+    {"zone_id": "BILLING", "polygon": [[700, 400], [1200, 400], [1200, 1080], [700, 1080]]},
+    {"zone_id": "FRAGRANCE", "polygon": [[1200, 400], [1600, 400], [1600, 1080], [1200, 1080]]},
+    {"zone_id": "PERSONAL_CARE", "polygon": [[1600, 400], [1920, 400], [1920, 1080], [1600, 1080]]}
+  ],
+  "cameras": {
+    "CAM_ENTRY_01": {
+      "zones": [
+        {"zone_id": "ENTRANCE", "polygon": [[200, 100], [1720, 100], [1720, 980], [200, 980]]}
+      ],
+      "entry_line_y": 520
+    },
+    "CAM_FLOOR_02": {
+      "zones": [
+        {"zone_id": "SKINCARE", "polygon": [[0, 0], [960, 0], [960, 540], [0, 540]]},
+        {"zone_id": "MAKEUP", "polygon": [[960, 0], [1920, 0], [1920, 540], [960, 540]]},
+        {"zone_id": "HAIRCARE", "polygon": [[1400, 0], [1920, 0], [1920, 1080], [1400, 1080]]}
+      ]
+    },
+    "CAM_BILLING_03": {
+      "zones": [
+        {"zone_id": "BILLING", "polygon": [[200, 200], [1720, 200], [1720, 900], [200, 900]]}
+      ]
+    },
+    "CAM_SKINCARE_04": {
+      "zones": [
+        {"zone_id": "SKINCARE", "polygon": [[100, 100], [1820, 100], [1820, 980], [100, 980]]},
+        {"zone_id": "FRAGRANCE", "polygon": [[0, 800], [1920, 800], [1920, 1080], [0, 1080]]}
+      ]
+    },
+    "CAM_MAKEUP_05": {
+      "zones": [
+        {"zone_id": "MAKEUP", "polygon": [[100, 100], [1820, 100], [1820, 980], [100, 980]]},
+        {"zone_id": "PERSONAL_CARE", "polygon": [[0, 800], [1920, 800], [1920, 1080], [0, 1080]]}
+      ]
+    }
+  }
+}

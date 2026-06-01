@@ -1,0 +1,64 @@
+# ============================================================
+# Purplle StoreIQ — Root .gitignore
+# ============================================================
+
+# Large CCTV footage files (~650 MB total)
+references/CCTV Footage/*.mp4
+storeiq/dataset/CCTV Footage/*.mp4
+
+# Model weights (downloaded at runtime)
+*.pt
+*.pth
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.production
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker overrides
+docker-compose.override.yml
+
+# Logs
+*.log
+
+# Node
+node_modules/
+
+# Cache
+.cache/
+
+# Large video files
+*.mov
+*.avi
+*.mkv
+*.flv

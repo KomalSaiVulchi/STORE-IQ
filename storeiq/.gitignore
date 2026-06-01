@@ -1,0 +1,55 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Model weights (downloaded at runtime)
+*.pt
+*.pth
+
+# Large media files
+dataset/
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.flv
+
+# Cache
+.cache/
+node_modules/

@@ -1,0 +1,33 @@
+FROM python:3.11-slim AS base
+
+WORKDIR /app
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends libgl1 libglib2.0-0 curl \
+	&& rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+FROM base AS production
+
+COPY detector /app/detector
+COPY pipeline /app/pipeline
+COPY streaming /app/streaming
+COPY api /app/api
+COPY database /app/database
+COPY analytics /app/analytics
+COPY anomaly /app/anomaly
+COPY feature_store /app/feature_store
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV YOLO_MODEL=yolov8n.pt
+
+# Pre-download YOLO weights so offline pipeline runs succeed
+RUN python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
+    CMD python -c "import os; exit(0 if os.path.exists('/tmp/pipeline_healthy') else 1)"
+
+CMD ["python", "-m", "pipeline.run_pipeline"]

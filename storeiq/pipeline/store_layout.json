@@ -1,0 +1,52 @@
+{
+  "stores": [
+    {
+      "store_id": "STORE_BLR_002",
+      "store_name": "Brigade_Bangalore",
+      "city": "Bangalore",
+      "open_hours": {"open": "10:00", "close": "22:00"},
+      "timezone": "Asia/Kolkata",
+      "cameras": [
+        {
+          "camera_id": "CAM_ENTRY_01",
+          "file": "CAM 1.mp4",
+          "coverage": "Entry/Exit threshold",
+          "zones": ["ENTRANCE"]
+        },
+        {
+          "camera_id": "CAM_FLOOR_02",
+          "file": "CAM 2.mp4",
+          "coverage": "Main floor zone coverage",
+          "zones": ["SKINCARE", "MAKEUP", "HAIRCARE"]
+        },
+        {
+          "camera_id": "CAM_BILLING_03",
+          "file": "CAM 3.mp4",
+          "coverage": "Billing counter area",
+          "zones": ["BILLING"]
+        },
+        {
+          "camera_id": "CAM_SKINCARE_04",
+          "file": "CAM 4.mp4",
+          "coverage": "Skincare and fragrance section",
+          "zones": ["SKINCARE", "FRAGRANCE"]
+        },
+        {
+          "camera_id": "CAM_MAKEUP_05",
+          "file": "CAM 5.mp4",
+          "coverage": "Makeup and personal care section",
+          "zones": ["MAKEUP", "PERSONAL_CARE"]
+        }
+      ],
+      "zones": [
+        {"zone_id": "ENTRANCE", "label": "Store Entrance / Exit"},
+        {"zone_id": "SKINCARE", "label": "Skincare Section"},
+        {"zone_id": "MAKEUP", "label": "Makeup Section"},
+        {"zone_id": "HAIRCARE", "label": "Haircare Section"},
+        {"zone_id": "BILLING", "label": "Billing Counter"},
+        {"zone_id": "FRAGRANCE", "label": "Fragrance Section"},
+        {"zone_id": "PERSONAL_CARE", "label": "Personal Care Section"}
+      ]
+    }
+  ]
+}

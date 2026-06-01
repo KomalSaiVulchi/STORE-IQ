@@ -1,0 +1,93 @@
+name: StoreIQ CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install linting tools
+        run: pip install ruff mypy
+
+      - name: Run ruff linter
+        run: ruff check . --config pyproject.toml
+
+      - name: Run ruff formatter check
+        run: ruff format --check . --config pyproject.toml
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: storeiq_test
+          POSTGRES_USER: storeiq
+          POSTGRES_PASSWORD: storeiq
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libglib2.0-0
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+psycopg2://storeiq:storeiq@localhost:5432/storeiq_test
+          REDIS_URL: redis://localhost:6379/0
+          KAFKA_BOOTSTRAP: localhost:9092
+          USE_MOCK_DETECTION: "true"
+        run: pytest tests/ -v --tb=short
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API Docker image
+        run: docker build -f docker/Dockerfile.api -t storeiq-api:${{ github.sha }} .
+
+      - name: Build Pipeline Docker image
+        run: docker build -f docker/Dockerfile.pipeline -t storeiq-pipeline:${{ github.sha }} .
+
+      - name: Build Dashboard Docker image
+        run: docker build -f docker/Dockerfile.dashboard -t storeiq-dashboard:${{ github.sha }} .
