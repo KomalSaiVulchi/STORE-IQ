@@ -42,8 +42,10 @@ htmlcov/
 *.pt
 *.pth
 
-# Large media files
-dataset/
+# Large CCTV footage (~650 MB) — keep CSV/XLSX/README
+dataset/CCTV Footage/
+
+# Large video files
 *.mp4
 *.mov
 *.avi
