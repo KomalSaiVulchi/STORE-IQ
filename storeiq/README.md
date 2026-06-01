@@ -1,6 +1,6 @@
-# Purplle StoreIQ
+StoreIQ
 
-Purplle StoreIQ is a production-grade, multi-camera AI Store Intelligence System designed for real-time store analytics, anomaly detection, and operational forecasting.
+StoreIQ is a production-grade, multi-camera AI Store Intelligence System designed for real-time store analytics, anomaly detection, and operational forecasting.
 
 **Store:** Brigade Bangalore (`STORE_BLR_002`)  
 **Dashboard:** http://localhost:3000 (live metrics via WebSocket)  
@@ -373,14 +373,3 @@ Purplle proprietary system. Challenge submission: 2026.
 - [CHOICES.md](docs/CHOICES.md) — detection model, event schema, and API architecture trade-offs
 - [SCORING.md](docs/SCORING.md) — self-scoring rubric (harsh / realistic)
 
-## Submission Checklist
-
-- [x] `docker compose up` starts API, dashboard, Kafka, PostgreSQL, Redis
-- [x] `GET /stores/STORE_BLR_002/metrics` returns valid JSON
-- [x] `POST /events/ingest` accepts single and batch events (idempotent)
-- [x] README explains detection pipeline against CCTV clips
-- [x] `docs/DESIGN.md` includes AI-Assisted Decisions section
-- [x] `docs/CHOICES.md` covers model selection, schema design, API decision
-- [x] Prompt blocks at top of each test file
-- [x] Live dashboard at http://localhost:3000
-- [x] Challenge dataset (POS CSV + layout) bundled under `dataset/`
