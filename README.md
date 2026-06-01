@@ -1,6 +1,6 @@
-# Purplle StoreIQ
+ StoreIQ
 
-Purplle StoreIQ is a production-grade, multi-camera AI Store Intelligence System designed for real-time store analytics, anomaly detection, and operational forecasting.
+StoreIQ is a production-grade, multi-camera AI Store Intelligence System designed for real-time store analytics, anomaly detection, and operational forecasting.
 
 **Store:** Brigade Bangalore (`STORE_BLR_002`)  
 **Dashboard:** http://localhost:3000 (live metrics via WebSocket)  
