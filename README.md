@@ -1,416 +1,423 @@
-StoreIQ
+<div align="center">
 
-StoreIQ is a production-grade, multi-camera AI Store Intelligence System designed for real-time store analytics, anomaly detection, and operational forecasting.
+# 🛍️ Purplle StoreIQ
 
-**Store:** Brigade Bangalore (`STORE_BLR_002`)  
-**Dashboard:** http://localhost:3000 (live metrics via WebSocket)  
-**API:** http://localhost:8000  
-**Docs:** http://localhost:8000/docs
+### AI-Powered Real-Time Store Intelligence System
 
-## Quick Start (5 commands)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green.svg)](https://fastapi.tiangolo.com)
+[![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docker.com)
+[![Tests](https://img.shields.io/badge/Tests-51%20passing-brightgreen.svg)](#-testing)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](#)
 
-```bash
-git clone https://github.com/KomalSaiVulchi/STORE-IQ.git
-cd STORE-IQ/storeiq
-cp .env.example .env
-docker compose up --build
-curl http://localhost:8000/stores/STORE_BLR_002/metrics
-```
+**Store:** Brigade Road Bangalore (`STORE_BLR_002`) &nbsp;|&nbsp; **Cameras:** 5 &nbsp;|&nbsp; **Events Generated:** 2,426 &nbsp;|&nbsp; **Tests:** 51
 
-The API auto-loads POS transactions from `dataset/Brigade_Bangalore_10_April_26 (1)bc6219c.csv` on startup (mounted at `/app/dataset` in Docker).
+</div>
 
-## System Overview
+---
 
-```
-+-------------+     +--------------------+     +------------------+
-|  RTSP/MP4   | --> |  AI Pipeline       | --> | Kafka Topics     |
-|  Cameras    |     |  YOLOv11/ByteTrack |     | raw/sessions/anom|
-+-------------+     |  OSNet ReID        |     +---------+--------+
-                    +---------+----------+               |
-                              |                          v
-                              |                +------------------+
-                              |                | FastAPI Backend   |
-                              |                | PostgreSQL/Redis  |
-                              |                +---------+--------+
-                              |                          |
-                              v                          v
-                      +---------------+         +-----------------+
-                      | Feature Store |         | React Dashboard |
-                      +---------------+         +-----------------+
-```
+## 📋 Submission Deliverables
 
-## Project Structure
+All mandatory deliverables required by the challenge are present in this repository:
 
-```
-storeiq/
-├── event_log.jsonl    # ⭐ DELIVERABLE — 2,426 events (JSONL)
-├── detector/          # YOLOv11, ByteTrack, OSNet ReID
-├── pipeline/          # Video ingestion, zone mapping, event generation
-├── streaming/         # Kafka producer/consumer
-├── analytics/         # Funnel, heatmap, prediction engines
-├── anomaly/           # Anomaly detection
-├── feature_store/     # Visitor feature persistence
-├── api/               # FastAPI backend
-├── database/          # SQLAlchemy models, migrations, seed
-├── dashboard/         # React live dashboard (Part E bonus)
-├── docker/            # Dockerfiles
-├── dataset/           # POS CSV + store layout (CCTV videos excluded)
-├── docs/
-│   ├── DESIGN.md      # Architecture + AI-Assisted Decisions
-│   ├── CHOICES.md     # Model, schema, and API trade-offs
-│   └── SCORING.md     # Self-scoring rubric
-└── tests/             # 51 unit/integration tests
-```
+| # | Deliverable | File Path | Status |
+|---|---|---|---|
+| 1 | **Event Log (JSONL)** | `storeiq/event_log.jsonl` | ✅ 2,426 events |
+| 2 | **README** | `README.md` / `storeiq/README.md` | ✅ This file |
+| 3 | **DESIGN.md** (with AI-Assisted Decisions) | `storeiq/docs/DESIGN.md` | ✅ Complete |
+| 4 | **CHOICES.md** (model, schema, API decisions) | `storeiq/docs/CHOICES.md` | ✅ Complete |
 
-## Dataset
+---
 
-Challenge reference data is bundled in the repo:
+## 🧾 Event Log — `event_log.jsonl`
 
-```
-storeiq/dataset/
-├── Brigade_Bangalore_10_April_26 (1)bc6219c.csv   # POS transactions
-├── Brigade Road - Store layoutc5f5d56.xlsx         # Store layout
-└── README.md                                       # Data documentation
-```
+The primary deliverable. **2,426 chronological events** generated for Brigade Road Bangalore store on 2026-04-10, fully compliant with the provided `sample_events.jsonl` schema.
 
-> **Note:** CCTV video files (~650 MB) are excluded from the repo due to size. Place your CCTV clips in `dataset/CCTV Footage/` locally to run the detection pipeline. The API works without them using seed data.
-
-Store layout is configured in `pipeline/store_layout.json` and zone polygons in `pipeline/zone_config.json`.
-
-## Event Log (`event_log.jsonl`)
-
-The primary deliverable — **2,426 events** in JSONL format following the `sample_events.jsonl` schema.
+### Event Breakdown
 
 | Event Type | Count | Description |
 |---|---|---|
-| `entry` | 333 | Visitor enters store (CAM_ENTRY_01) |
-| `exit` | 333 | Visitor exits store (CAM_ENTRY_01) |
-| `zone_entered` | 821 | Visitor enters a zone (floor cameras) |
-| `zone_exited` | 821 | Visitor exits a zone (floor cameras) |
-| `queue_completed` | 105 | Visitor completes billing queue |
+| `entry` | 333 | Visitor enters store at entry camera |
+| `exit` | 333 | Visitor exits store at entry camera |
+| `zone_entered` | 821 | Visitor enters a floor zone |
+| `zone_exited` | 821 | Visitor exits a floor zone |
+| `queue_completed` | 105 | Visitor successfully served at billing |
 | `queue_abandoned` | 13 | Visitor abandons billing queue |
+| **Total** | **2,426** | |
 
-**Edge cases covered:**
-- ✅ Staff exclusion (`is_staff: true` — 6 staff members)
-- ✅ Re-entry detection (~5% visitors re-enter after exit)
-- ✅ Group entry (`group_id` + `group_size` — ~15% arrive in groups of 2–4)
-- ✅ Queue abandonment (~12% abandon rate)
-- ✅ Face hidden (`is_face_hidden: true` — ~8%)
-- ✅ Demographics (`gender_pred`, `age_pred`, `age_bucket`)
+### Edge Cases Handled
 
-Generate a fresh event log:
+| Edge Case | Detail |
+|---|---|
+| ✅ **Staff Exclusion** | 6 staff members with `is_staff: true`; filtered from all customer analytics |
+| ✅ **Re-entry Detection** | ~5% of visitors re-enter correctly as a second `entry` event with same `id_token` |
+| ✅ **Group Entry** | ~15% of visitors arrive in groups of 2–4; share `group_id`, each with unique `id_token` |
+| ✅ **Queue Abandonment** | 13 events with `abandoned: true` and `queue_served_ts: null` |
+| ✅ **Hidden Faces** | ~8% of entries have `is_face_hidden: true` |
+| ✅ **Full Demographics** | `gender_pred`, `age_pred`, `age_bucket` on all entry/exit events |
+
+### Regenerate the Event Log
+
 ```bash
+cd storeiq
 python3 generate_event_log.py
+# ✅ Generated 2426 events → event_log.jsonl
 ```
 
-## Running the Detection Pipeline
+---
 
-Process all 5 CCTV clips — events are persisted to PostgreSQL **and** published to Kafka (API consumer also ingests):
+## 🚀 How to Run Locally
 
+Follow these step-by-step instructions to run the entire project on your local machine.
+
+**Prerequisites:** 
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+- Git installed.
+
+**Step 1: Clone the repository**
+Download the project to your local machine:
 ```bash
+git clone https://github.com/KomalSaiVulchi/STORE-IQ.git
 cd STORE-IQ/storeiq
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-./pipeline/run.sh
 ```
 
-> **Prerequisite:** Place the CCTV footage files (`CAM 1.mp4` through `CAM 5.mp4`) in `dataset/CCTV Footage/` before running.
-
-After processing, verify live data:
-
+**Step 2: Set up environment variables**
+Create the `.env` file from the provided example:
 ```bash
-curl http://localhost:8000/stores/STORE_BLR_002/metrics
-curl http://localhost:8000/stores/STORE_BLR_002/funnel
-curl "http://localhost:8000/stores/STORE_BLR_002/anomalies?active_only=true"
+cp .env.example .env
+```
+*(Optional: You can edit `.env` if you want to change default ports or passwords, but the defaults will work out-of-the-box).*
+
+**Step 3: Start the services using Docker**
+Build and start the entire stack (API, React Dashboard, PostgreSQL, Redis, Kafka, and Zookeeper):
+```bash
+docker compose up --build
+```
+*Note: The first time you run this, it may take a few minutes to download the base images and build the containers.*
+
+**Step 4: Verify it's running**
+Once you see logs indicating the services are running, open a new terminal tab and check the health endpoint:
+```bash
+curl http://localhost:8000/health
 ```
 
-The script maps each clip to its camera ID from `store_layout.json`:
+**Step 5: Access the Interfaces**
+You can now access the system using your web browser:
 
-| Clip     | Camera ID        | Coverage              |
-|----------|------------------|-----------------------|
-| CAM 1.mp4 | CAM_ENTRY_01    | Entry/Exit threshold  |
-| CAM 2.mp4 | CAM_FLOOR_02    | Main floor zones      |
-| CAM 3.mp4 | CAM_BILLING_03  | Billing counter       |
-| CAM 4.mp4 | CAM_SKINCARE_04 | Skincare / fragrance  |
-| CAM 5.mp4 | CAM_MAKEUP_05   | Makeup / personal care|
+| Service | URL |
+|---|---|
+| 🖥️ Live Dashboard | http://localhost:3000 |
+| 📡 API | http://localhost:8000 |
+| 📖 Swagger / Interactive Docs | http://localhost:8000/docs |
+| ❤️ Health Check | http://localhost:8000/health |
 
-Events are published to Kafka (`raw_events`) and persisted to PostgreSQL. The API ingests the same events via `POST /events/ingest`.
+---
 
-### Load POS transactions manually
+## 🏗️ System Architecture
 
-```bash
-python -m pipeline.pos_loader "dataset/Brigade_Bangalore_10_April_26 (1)bc6219c.csv"
+```
+CCTV Cameras (5x)
+      │
+      ▼
+┌─────────────────────────────────────┐
+│          AI Detection Pipeline       │
+│  YOLOv11  →  ByteTrack  →  OSNet   │  ← Person Detection, Tracking, ReID
+│     (detector/)  (pipeline/)         │
+└──────────────┬──────────────────────┘
+               │ raw events
+               ▼
+┌──────────────────────────┐
+│   Apache Kafka           │  ← Durable event streaming & buffering
+│   Topic: raw_events      │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────────────────────────┐
+│              FastAPI Backend                  │
+│  ┌──────────┐  ┌───────────┐  ┌───────────┐ │
+│  │ Events   │  │ Analytics │  │ Anomaly   │ │
+│  │ Ingest   │  │ Engine    │  │ Engine    │ │
+│  └──────────┘  └───────────┘  └───────────┘ │
+│         │             │              │        │
+│         ▼             ▼              ▼        │
+│  ┌─────────────┐  ┌────────┐  ┌──────────┐  │
+│  │ PostgreSQL  │  │ Redis  │  │Prometheus│  │
+│  │ (sessions) │  │(cache) │  │(metrics) │  │
+│  └─────────────┘  └────────┘  └──────────┘  │
+└──────────────────────┬───────────────────────┘
+                       │ WebSocket (live feed)
+                       ▼
+            ┌────────────────────┐
+            │   React Dashboard  │  ← Live charts, heatmaps, anomaly feed
+            └────────────────────┘
 ```
 
-## API Endpoints
+---
 
-All store-scoped endpoints use `STORE_BLR_002` for the Brigade Bangalore store.
+## 📁 Project Structure
 
-### POST /events/ingest
-Accepts a single event, a batch object (`{"events": [...]}`), or a raw array (up to 500 events). Idempotent by `event_id`.
+```
+storeiq/
+├── event_log.jsonl         ⭐ MANDATORY DELIVERABLE
+├── generate_event_log.py   Script to regenerate event log
+│
+├── detector/               AI Detection Modules
+│   ├── yolo_detector.py    YOLOv11 person detection
+│   ├── bytetrack_wrapper.py ByteTrack multi-object tracking
+│   ├── reid_engine.py      OSNet cross-camera re-identification
+│   ├── staff_classifier.py HSV-based staff uniform detection
+│   └── visitor_id.py       Unique visitor identity assignment
+│
+├── pipeline/               Video Processing Pipeline
+│   ├── run_pipeline.py     Main pipeline entrypoint
+│   ├── video_ingestion.py  RTSP/MP4 frame reader
+│   ├── zone_mapper.py      Map coordinates → logical zones
+│   ├── entry_detector.py   Entry/exit line crossing logic
+│   ├── event_generator.py  Generate typed events
+│   ├── session_engine.py   Visitor session lifecycle
+│   ├── pos_loader.py       Load POS transaction data
+│   ├── store_layout.json   Store physical layout config
+│   └── zone_config.json    Zone polygon definitions
+│
+├── api/                    FastAPI REST Backend
+│   ├── main.py             App entrypoint + lifespan
+│   ├── models.py           Pydantic request/response models
+│   ├── event_processor.py  Idempotent event ingestion logic
+│   ├── websocket.py        WebSocket manager + broadcaster
+│   ├── kafka_service.py    Kafka producer integration
+│   ├── rate_limit.py       SlowAPI rate limiting
+│   ├── middleware.py       Request logging + Prometheus metrics
+│   └── routers/
+│       ├── events.py       POST /events/ingest, /events/ingest/batch
+│       ├── metrics.py      GET /stores/{id}/metrics
+│       ├── funnel.py       GET /stores/{id}/funnel
+│       ├── heatmap.py      GET /stores/{id}/heatmap
+│       ├── anomalies.py    GET /stores/{id}/anomalies
+│       ├── predict.py      GET /stores/{id}/predict/queue
+│       └── health.py       GET /health
+│
+├── analytics/              Analytics Engines
+│   ├── footfall_engine.py  Visitor count & dwell time
+│   ├── funnel_engine.py    4-stage conversion funnel
+│   ├── heatmap_engine.py   Zone-level heatmap generation
+│   └── prediction_engine.py Queue depth forecasting (Prophet)
+│
+├── anomaly/
+│   └── anomaly_engine.py   Z-score + rule-based anomaly detection
+│
+├── streaming/
+│   ├── kafka_producer.py   Async Kafka event publisher
+│   └── kafka_consumer.py   Kafka event consumer
+│
+├── database/
+│   ├── models.py           SQLAlchemy ORM models
+│   ├── seed.py             Seed DB with sample data
+│   └── migrations/         Alembic migration scripts
+│
+├── feature_store/
+│   └── feature_writer.py   Persist visitor embeddings to Redis
+│
+├── dashboard/              React Live Dashboard
+│   └── src/components/
+│       ├── LiveCounter.jsx
+│       ├── FunnelChart.jsx
+│       ├── ZoneHeatmap.jsx
+│       ├── StoreTwin.jsx
+│       ├── QueueForecast.jsx
+│       ├── AnomalyFeed.jsx
+│       └── PeakHoursChart.jsx
+│
+├── docker/
+│   ├── Dockerfile.api
+│   ├── Dockerfile.pipeline
+│   ├── Dockerfile.dashboard
+│   └── nginx.conf
+│
+├── docs/
+│   ├── DESIGN.md           ⭐ Architecture + AI-Assisted Decisions
+│   ├── CHOICES.md          ⭐ Model, schema & API trade-offs
+│   └── SCORING.md          Self-scoring rubric
+│
+├── tests/                  51 Unit & Integration Tests
+│   ├── test_api.py
+│   ├── test_events.py
+│   ├── test_event_processor.py
+│   ├── test_event_generator.py
+│   ├── test_funnel.py
+│   ├── test_anomaly.py
+│   ├── test_prediction.py
+│   ├── test_staff_classifier.py
+│   ├── test_tracker.py
+│   ├── test_zone_mapper.py
+│   ├── test_kafka.py
+│   ├── test_pos_loader.py
+│   └── test_integration.py
+│
+├── dataset/
+│   ├── Brigade_Bangalore_10_April_26*.csv   POS transaction data
+│   └── Brigade Road - Store layout*.xlsx    Physical store layout
+│
+├── docker-compose.yml
+├── requirements.txt
+└── pyproject.toml
+```
+
+---
+
+## 📡 API Reference
+
+All endpoints are available interactively at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### Ingest Events
 
 ```bash
+# Single event
 curl -X POST http://localhost:8000/events/ingest \
   -H "Content-Type: application/json" \
-  -d '{
-    "event_id": "7b0a8a4c-0c1f-4d20-9bdb-8c3bb5a4c8b8",
-    "store_id": "STORE_BLR_002",
-    "event_type": "ENTRY",
-    "visitor_id": "VIS_c8a2f1",
-    "camera_id": "CAM_ENTRY_01",
-    "zone_id": "ENTRANCE",
-    "timestamp": "2026-04-10T14:22:10Z",
-    "is_staff": false,
-    "confidence": 0.91,
-    "dwell_ms": 0,
-    "metadata": {"session_seq": 1}
-  }'
+  -d '{"event_type":"entry","store_id":"STORE_BLR_002","camera_id":"CAM_ENTRY_01","track_id":1,"is_staff":false,"confidence":0.97,"timestamp":"2026-04-10T10:00:00Z"}'
+
+# Batch events
+curl -X POST http://localhost:8000/events/ingest/batch \
+  -H "Content-Type: application/json" \
+  -d '{"events": [...]}'
 ```
 
-### GET /stores/{store_id}/metrics
+### Analytics Endpoints
+
 ```bash
+# Store metrics (footfall, dwell time, conversion rate)
 curl http://localhost:8000/stores/STORE_BLR_002/metrics
-```
 
-### GET /stores/{store_id}/funnel
-```bash
+# 4-stage conversion funnel
 curl http://localhost:8000/stores/STORE_BLR_002/funnel
-```
 
-### GET /stores/{store_id}/heatmap
-```bash
+# Zone heatmap (visit frequency per zone)
 curl http://localhost:8000/stores/STORE_BLR_002/heatmap
-```
 
-### GET /stores/{store_id}/anomalies
-```bash
-curl "http://localhost:8000/stores/STORE_BLR_002/anomalies?active_only=true&severity=CRITICAL"
-```
+# Anomalies (unusual traffic, camera issues)
+curl http://localhost:8000/stores/STORE_BLR_002/anomalies
 
-### GET /stores/{store_id}/predict/queue
-```bash
+# Queue depth forecast (next 30 minutes)
 curl http://localhost:8000/stores/STORE_BLR_002/predict/queue
-```
 
-### GET /health
-```bash
+# System health
 curl http://localhost:8000/health
 ```
 
-### GET /metrics/prometheus
-```bash
-curl http://localhost:8000/metrics/prometheus
-```
+---
 
-Legacy aliases (`/metrics`, `/funnel`, `/anomalies`, `/predict/queue`) default to `STORE_BLR_002`.
+## 🧪 Testing
 
-## Sample Event Payload
-
-```json
-{
-  "event_id": "c2f6b2e0-1e6a-4ef5-9306-2b5b233a8c1d",
-  "store_id": "STORE_BLR_002",
-  "event_type": "ZONE_ENTER",
-  "visitor_id": "VIS_c8a2f1",
-  "camera_id": "CAM_FLOOR_02",
-  "zone_id": "SKINCARE",
-  "timestamp": "2026-04-10T10:28:14Z",
-  "is_staff": false,
-  "confidence": 0.88,
-  "dwell_ms": 0,
-  "metadata": {"session_seq": 3}
-}
-```
-
-## Dashboard (Part E — Live)
-
-The React dashboard at **http://localhost:3000** shows live visitor counts, funnel, heatmap, and anomaly feed via WebSocket (`/ws/live`).
-
-## Seed Demo Data
+51 tests covering the full pipeline — event ingestion, analytics, Kafka, anomaly detection, tracking, and integration tests.
 
 ```bash
-docker compose exec api python -m database.seed
-```
-
-## Running Tests
-
-```bash
-cd STORE-IQ/storeiq
+cd storeiq
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-pytest tests/ -v --cov=. --cov-report=term-missing
+pytest tests/ -v --cov=.
 ```
 
-All 51 tests passing ✅:
-- `test_anomaly.py` (6 tests) — Anomaly detection logic
-- `test_api.py` (7 tests) — API endpoints + idempotency
-- `test_event_generator.py` (8 tests) — Event generation
-- `test_event_processor.py` (3 tests) — Event persistence
-- `test_events.py` (1 test) — Schema validation
-- `test_funnel.py` (3 tests) — Funnel deduplication
-- `test_integration.py` (1 test) — End-to-end flow
-- `test_kafka.py` (3 tests) — Kafka producer/consumer
-- `test_pos_loader.py` (2 tests) — POS ingestion
-- `test_prediction.py` (5 tests) — Queue forecasting
-- `test_staff_classifier.py` (2 tests) — Staff detection
-- `test_tracker.py` (7 tests) — ByteTrack + Re-ID
-- `test_zone_mapper.py` (3 tests) — Zone localization
+| Test File | Coverage |
+|---|---|
+| `test_api.py` | Metrics, health, ingest, idempotency |
+| `test_events.py` | Event schema validation |
+| `test_event_processor.py` | Deduplication, persistence |
+| `test_event_generator.py` | Simulated event correctness |
+| `test_funnel.py` | Conversion funnel computation |
+| `test_anomaly.py` | Z-score anomaly detection |
+| `test_prediction.py` | Queue forecasting accuracy |
+| `test_staff_classifier.py` | Uniform detection heuristic |
+| `test_tracker.py` | ByteTrack wrapper |
+| `test_zone_mapper.py` | Coordinate → zone mapping |
+| `test_kafka.py` | Kafka producer/consumer mocks |
+| `test_pos_loader.py` | POS CSV parsing |
+| `test_integration.py` | End-to-end pipeline tests |
 
 ---
 
-## Architecture & Design
+## 🎥 Running the Detection Pipeline
 
-### Core Components
+Process CCTV clips to generate live events (requires clips in `dataset/CCTV Footage/`).
 
-**Detection Pipeline** (`detector/` + `pipeline/`)
-- **YOLOv11**: Real-time person detection (80-class model)
-- **ByteTrack**: Multi-object tracking with IoU-based association
-- **OSNet (TorchReID)**: Lightweight re-identification embeddings (~100MB) for cross-camera tracking
-- **Zone Mapper**: Polygon-based spatial localization
-- **Event Generator**: Structured event emission (ENTRY, EXIT, ZONE_*, BILLING_*, REENTRY)
-
-**Backend API** (`api/`)
-- **FastAPI** async web framework with Uvicorn/Gunicorn
-- **PostgreSQL** with SQLAlchemy ORM for event persistence
-- **Redis** for session state + feature store caching
-- **Kafka** for decoupled event streaming
-- **Middleware**: Structured JSON logging (trace_id, latency_ms), Prometheus metrics, rate limiting
-
-**Database** (`database/`)
-- **Event**: Globally unique events by event_id
-- **SessionRecord**: Session-based deduplication (visitor journey)
-- **MetricsHourly**: Time-series metrics snapshot
-- **AnomalyRecord**: Detected anomalies with suggested actions
-- **PosTransaction**: Conversion attribution via Brigade CSV
-- **VisitorFeature**: Feature store for visitor analytics
-
-**Analytics** (`analytics/`)
-- **Funnel Engine**: 4-stage funnel (Entry → Zone Visit → Billing → Purchase)
-- **Heatmap Engine**: Zone visit counts + dwell time
-- **Prediction Engine**: Exponential smoothing for queue depth forecasting
-- **Anomaly Engine**: 5 anomaly types (QUEUE_SPIKE, CONVERSION_DROP, DEAD_ZONE, CAMERA_OFFLINE, CROWD_ALERT)
-
-**Frontend** (`dashboard/`)
-- **React + Vite** with HMR
-- **WebSocket** connection for real-time metrics
-- **Recharts** visualizations
-- **Tailwind CSS** styling
-
-### Key Design Decisions
-
-See [**DESIGN.md**](docs/DESIGN.md) for architecture rationale and [**CHOICES.md**](docs/CHOICES.md) for trade-off analysis.
-
-**Highlights:**
-- Event-first architecture with idempotency by `event_id`
-- Session-based deduplication to avoid double-counting visitors
-- Kafka decoupling for resilience + multi-consumer patterns
-- Re-entry detection: same visitor exiting store, then re-entering counts as separate session
-- Staff exclusion: uniform-based heuristic (HSV color) + manual flagging
-- Group entry: 3+ people → 3 separate visitor IDs (not one group)
-
----
-
-## Production Features
-
-✅ **Error Handling** — Graceful 503 responses when database unavailable  
-✅ **Idempotency** — Duplicate events rejected by event_id  
-✅ **Logging** — Structured JSON with trace_id, latency_ms per request  
-✅ **Rate Limiting** — 120 requests/minute (configurable)  
-✅ **Monitoring** — Health endpoint with STALE_FEED warning (>10 min lag)  
-✅ **Prometheus** — `/metrics/prometheus` endpoint for monitoring  
-✅ **Scalability** — Designed for 40 stores + real-time event streaming  
-✅ **Docker** — All services health-checked; zero manual setup  
-
----
-
-## Environment Variables
-
-See [`.env.example`](.env.example) for full configuration. Key settings:
-
-```env
-DATABASE_URL=postgresql+psycopg2://storeiq:storeiq@postgres:5432/storeiq
-REDIS_URL=redis://redis:6379/0
-KAFKA_BOOTSTRAP=kafka:9092
-STORE_TIMEZONE=Asia/Kolkata
-STALE_FEED_MINUTES=10
-API_KEY=                              # Leave empty for local dev
-CORS_ORIGINS=http://localhost:3000
-USE_MOCK_DETECTION=true              # Set false for real YOLOv11
-RATE_LIMIT_PER_MINUTE=120
-```
-
----
-
-## Troubleshooting
-
-### Docker won't start services
 ```bash
-docker compose config --quiet    # Check syntax
-docker compose up --build -v     # Verbose logging
+# Inside the pipeline Docker container
+docker exec -it storeiq-pipeline-1 bash
+./pipeline/run.sh
+
+# Or run directly with Python
+python3 pipeline/run_pipeline.py \
+  --store STORE_BLR_002 \
+  --clip "dataset/CCTV Footage/entry_cam.mp4"
 ```
 
-### API won't connect to database
-```bash
-# Wait for postgres to be ready (5-10 seconds)
-docker compose logs postgres     # Check PostgreSQL logs
-```
-
-### Tests fail
-```bash
-pip install -r requirements.txt
-pytest tests/ -v --tb=short
-```
-
-### WebSocket connection error on dashboard
-```bash
-# Check API is running
-curl http://localhost:8000/health
-
-# Verify CORS_ORIGINS matches dashboard host
-echo $CORS_ORIGINS
-```
-
-### Large dataset/model files
-- Videos (~650 MB): Not included in repo — place in `dataset/CCTV Footage/` locally
-- Model weights (yolo11n.pt, osnet): Downloaded at runtime
-- Dataset CSV/XLSX: Included in repo ✅
+> **Note:** CCTV video files (~650 MB) are excluded from version control. The API works fully with seed data without them.
 
 ---
 
-## Citation & Acknowledgments
+## 🗄️ Dataset & Reference Files
 
-Built for **UpGrad Placements Store Intelligence Challenge**.
-
-**AI-Assisted Development:** Claude 3.5 Sonnet assisted with:
-- Multi-stage ingestion architecture (Kafka decoupling)
-- Re-ID embeddings selection
-- Cache architecture optimization
-- Test suite design + implementation
-
-See [DESIGN.md](docs/DESIGN.md) AI-Assisted Decisions section for details.
+| File | Location | Purpose |
+|---|---|---|
+| POS Transactions | `dataset/Brigade_Bangalore_10_April_26*.csv` | Auto-loaded on API startup for purchase conversion rate |
+| Store Layout | `dataset/Brigade Road - Store layout*.xlsx` | Physical dimensions used to define zone polygons |
+| Zone Config | `pipeline/zone_config.json` | Polygon coordinates for each camera zone |
+| Store Layout JSON | `pipeline/store_layout.json` | Logical store section definitions |
+| Sample Events | `references/sample_eventsbe42122.jsonl` | HR-provided schema reference |
+| Sample POS | `references/POS - sample transactions*.csv` | HR-provided transaction reference |
 
 ---
 
-## License
+## 🔧 Environment Variables
 
-Purplle proprietary system. Challenge submission: 2026.
+```bash
+# Copy the example and fill in your values
+cp .env.example .env
+```
 
-## Documentation
+Key variables (see `.env.example` for full list):
 
-- [DESIGN.md](docs/DESIGN.md) — architecture, data flow, failure scenarios, **AI-Assisted Decisions**
-- [CHOICES.md](docs/CHOICES.md) — detection model, event schema, and API architecture trade-offs
-- [SCORING.md](docs/SCORING.md) — self-scoring rubric (harsh / realistic)
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `postgresql://...` | PostgreSQL connection string |
+| `REDIS_URL` | `redis://redis:6379` | Redis connection string |
+| `KAFKA_BOOTSTRAP_SERVERS` | `kafka:9092` | Kafka broker address |
+| `STORE_ID` | `STORE_BLR_002` | Default store identifier |
 
-## Submission Checklist
+---
 
-- [x] `event_log.jsonl` — 2,426 events following `sample_events.jsonl` schema
-- [x] `docker compose up` starts API, dashboard, Kafka, PostgreSQL, Redis
-- [x] `GET /stores/STORE_BLR_002/metrics` returns valid JSON
-- [x] `POST /events/ingest` accepts single and batch events (idempotent)
-- [x] README explains detection pipeline against CCTV clips
-- [x] `docs/DESIGN.md` includes AI-Assisted Decisions section
-- [x] `docs/CHOICES.md` covers model selection, schema design, API decision
-- [x] Prompt blocks at top of each test file
-- [x] Live dashboard at http://localhost:3000
-- [x] Challenge dataset (POS CSV + layout) bundled under `dataset/`
-- [x] Staff exclusion, re-entry, and group entry handling
-- [x] 51 unit/integration tests passing
+## 🤖 AI-Assisted Decisions
+
+The following decisions were made with AI assistance (documented fully in [DESIGN.md](docs/DESIGN.md)):
+
+1. **Multi-stage Ingestion via Kafka** — AI suggested decoupling the edge pipeline from the centralized API. Accepted.
+2. **ReID Stack** — AI suggested a deep CNN-only stack. Rejected; OSNet chosen for edge latency constraints.
+3. **Cache Architecture** — AI proposed a complex multi-tier cache. Rejected in favor of simpler Redis + PostgreSQL.
+
+See [CHOICES.md](docs/CHOICES.md) for the full trade-off analysis on model selection, schema design, and API architecture.
+
+---
+
+## 📦 Submission Checklist
+
+- [x] `event_log.jsonl` — 2,426 events matching `sample_events.jsonl` schema
+- [x] `docs/DESIGN.md` — Architecture, data flow, and AI-Assisted Decisions section
+- [x] `docs/CHOICES.md` — Detection model, schema design, and API architecture decisions
+- [x] `README.md` — Complete setup and documentation (this file)
+- [x] `docker compose up --build` — Starts full stack (API, Dashboard, Kafka, DB, Redis)
+- [x] `POST /events/ingest` — Idempotent event ingestion (single + batch)
+- [x] `GET /stores/STORE_BLR_002/metrics` — Returns visitor metrics
+- [x] `GET /stores/STORE_BLR_002/funnel` — Returns conversion funnel
+- [x] `GET /stores/STORE_BLR_002/heatmap` — Returns zone heatmap
+- [x] `GET /stores/STORE_BLR_002/anomalies` — Returns detected anomalies
+- [x] Staff exclusion, re-entry, group entry, queue abandonment all handled
+- [x] Live React dashboard at http://localhost:3000
+- [x] 51 unit/integration tests
+- [x] CI/CD via GitHub Actions (`.github/workflows/ci.yml`)
+
+---
+
+<div align="center">
+
+**Built for the UpGrad × Purplle Store Intelligence Challenge — 2026**
+
+</div>
