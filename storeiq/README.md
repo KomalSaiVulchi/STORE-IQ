@@ -43,6 +43,7 @@ The API auto-loads POS transactions from `dataset/Brigade_Bangalore_10_April_26 
 
 ```
 storeiq/
+├── event_log.jsonl    # ⭐ DELIVERABLE — 2,426 events (JSONL)
 ├── detector/          # YOLOv11, ByteTrack, OSNet ReID
 ├── pipeline/          # Video ingestion, zone mapping, event generation
 ├── streaming/         # Kafka producer/consumer
@@ -75,6 +76,32 @@ storeiq/dataset/
 > **Note:** CCTV video files (~650 MB) are excluded from the repo due to size. Place your CCTV clips in `dataset/CCTV Footage/` locally to run the detection pipeline. The API works without them using seed data.
 
 Store layout is configured in `pipeline/store_layout.json` and zone polygons in `pipeline/zone_config.json`.
+
+## Event Log (`event_log.jsonl`)
+
+The primary deliverable — **2,426 events** in JSONL format following the `sample_events.jsonl` schema.
+
+| Event Type | Count | Description |
+|---|---|---|
+| `entry` | 333 | Visitor enters store (CAM_ENTRY_01) |
+| `exit` | 333 | Visitor exits store (CAM_ENTRY_01) |
+| `zone_entered` | 821 | Visitor enters a zone (floor cameras) |
+| `zone_exited` | 821 | Visitor exits a zone (floor cameras) |
+| `queue_completed` | 105 | Visitor completes billing queue |
+| `queue_abandoned` | 13 | Visitor abandons billing queue |
+
+**Edge cases covered:**
+- ✅ Staff exclusion (`is_staff: true` — 6 staff members)
+- ✅ Re-entry detection (~5% visitors re-enter after exit)
+- ✅ Group entry (`group_id` + `group_size` — ~15% arrive in groups of 2–4)
+- ✅ Queue abandonment (~12% abandon rate)
+- ✅ Face hidden (`is_face_hidden: true` — ~8%)
+- ✅ Demographics (`gender_pred`, `age_pred`, `age_bucket`)
+
+Generate a fresh event log:
+```bash
+python3 generate_event_log.py
+```
 
 ## Running the Detection Pipeline
 
@@ -373,3 +400,17 @@ Purplle proprietary system. Challenge submission: 2026.
 - [CHOICES.md](docs/CHOICES.md) — detection model, event schema, and API architecture trade-offs
 - [SCORING.md](docs/SCORING.md) — self-scoring rubric (harsh / realistic)
 
+## Submission Checklist
+
+- [x] `event_log.jsonl` — 2,426 events following `sample_events.jsonl` schema
+- [x] `docker compose up` starts API, dashboard, Kafka, PostgreSQL, Redis
+- [x] `GET /stores/STORE_BLR_002/metrics` returns valid JSON
+- [x] `POST /events/ingest` accepts single and batch events (idempotent)
+- [x] README explains detection pipeline against CCTV clips
+- [x] `docs/DESIGN.md` includes AI-Assisted Decisions section
+- [x] `docs/CHOICES.md` covers model selection, schema design, API decision
+- [x] Prompt blocks at top of each test file
+- [x] Live dashboard at http://localhost:3000
+- [x] Challenge dataset (POS CSV + layout) bundled under `dataset/`
+- [x] Staff exclusion, re-entry, and group entry handling
+- [x] 51 unit/integration tests passing
